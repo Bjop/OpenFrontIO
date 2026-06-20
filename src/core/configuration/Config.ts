@@ -360,6 +360,7 @@ export class Config {
             UnitType.DefensePost,
           ),
           constructionDuration: this.instantBuild() ? 0 : 5 * 10,
+          upgradable: true,
         };
         break;
       case UnitType.SAMLauncher:

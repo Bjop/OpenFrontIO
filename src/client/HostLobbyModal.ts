@@ -202,9 +202,7 @@ export class HostLobbyModal extends BaseModal {
         : null;
     const statusLabel =
       secondsRemaining === null
-        ? this.clients.length === 1
-          ? translateText("host_modal.waiting")
-          : translateText("host_modal.start")
+        ? translateText("host_modal.start")
         : translateText("host_modal.starting_in", {
             time: renderDuration(secondsRemaining),
           });
@@ -462,7 +460,7 @@ export class HostLobbyModal extends BaseModal {
             width="block"
             size="lg"
             .title=${statusLabel}
-            ?disable=${this.lobbyStartAt === null && this.clients.length < 2}
+            ?disable=${this.lobbyStartAt === null && this.clients.length < 1}
             @click=${this.toggleGameStartTimer}
           ></o-button>
         </div>
