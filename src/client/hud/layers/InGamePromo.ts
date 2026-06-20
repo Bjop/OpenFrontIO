@@ -18,7 +18,6 @@ export class InGamePromo extends LitElement implements Controller {
   private adsVisible: boolean = false;
   private bottomRailDestroyed: boolean = false;
   private cornerAdShown: boolean = false;
-  private adCheckInterval: ReturnType<typeof setTimeout> | null = null;
 
   createRenderRoot() {
     return this;
@@ -67,11 +66,6 @@ export class InGamePromo extends LitElement implements Controller {
 
     this.shouldShow = true;
     this.requestUpdate();
-
-    this.updateComplete.then(() => {
-      this.loadAd();
-      this.checkForAds();
-    });
   }
 
   private showCrazyGamesAd(): void {
@@ -91,82 +85,6 @@ export class InGamePromo extends LitElement implements Controller {
       console.log("[InGamePromo] DOM updated, calling createBottomLeftAd");
       crazyGamesSDK.createBottomLeftAd();
     });
-  }
-
-  private checkForAds(): void {
-    if (this.adCheckInterval) {
-      clearInterval(this.adCheckInterval);
-    }
-    this.adCheckInterval = setInterval(() => {
-      const hasAds = AD_TYPES.some(({ selectorId }) => {
-        const el = document.getElementById(selectorId);
-        return el && el.clientHeight > 50;
-      });
-      if (hasAds) {
-        this.adsVisible = true;
-        this.requestUpdate();
-        if (this.adCheckInterval) {
-          clearInterval(this.adCheckInterval);
-          this.adCheckInterval = null;
-        }
-      }
-    }, 1000);
-  }
-
-  private loadAd(): void {
-    if (!window.ramp) {
-      console.warn("Playwire RAMP not available for in-game ad");
-      return;
-    }
-
-    try {
-      window.ramp.que.push(() => {
-        try {
-          window.ramp.spaAddAds(
-            AD_TYPES.map(({ type, selectorId }) => ({ type, selectorId })),
-          );
-          console.log(
-            "In-game bottom-left ads loaded:",
-            AD_TYPES.map((a) => a.type),
-          );
-        } catch (e) {
-          console.error("Failed to add in-game ads:", e);
-        }
-      });
-    } catch (error) {
-      console.error("Failed to load in-game ads:", error);
-    }
-  }
-
-  public hideAd(): void {
-    if (this.adCheckInterval) {
-      clearInterval(this.adCheckInterval);
-      this.adCheckInterval = null;
-    }
-    this.adsVisible = false;
-    this.destroyBottomRail();
-
-    if (crazyGamesSDK.isOnCrazyGames()) {
-      crazyGamesSDK.clearBottomLeftAd();
-      this.shouldShow = false;
-      this.requestUpdate();
-      return;
-    }
-
-    if (!window.ramp) {
-      console.warn("Playwire RAMP not available for in-game ad");
-      return;
-    }
-    this.shouldShow = false;
-    try {
-      for (const { type } of AD_TYPES) {
-        window.ramp.destroyUnits(type);
-      }
-      console.log("successfully destroyed in-game bottom-left ads");
-    } catch (e) {
-      console.error("error destroying in-game ads:", e);
-    }
-    this.requestUpdate();
   }
 
   render() {
