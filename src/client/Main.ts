@@ -36,15 +36,11 @@ import { JoinLobbyModal } from "./JoinLobbyModal";
 import "./LangSelector";
 import { LangSelector } from "./LangSelector";
 import { initLayout } from "./Layout";
-import "./LeaderboardModal";
 import "./Matchmaking";
 import { MatchmakingModal } from "./Matchmaking";
 import { modalRouter } from "./ModalRouter";
 import { initNavigation } from "./Navigation";
-import "./NewsModal";
 import "./PatternInput";
-import "./SinglePlayerModal";
-import { StoreModal } from "./Store";
 import "./TerritoryPatternsModal";
 import { TerritoryPatternsModal } from "./TerritoryPatternsModal";
 import { TokenLoginModal } from "./TokenLoginModal";
@@ -69,7 +65,6 @@ import "./components/Footer";
 import "./components/MainLayout";
 import "./components/MobileNavBar";
 import "./components/PlayPage";
-import "./components/RankedModal";
 import "./components/baseComponents/Button";
 import "./components/baseComponents/Modal";
 import "./styles.css";
@@ -256,7 +251,12 @@ class Client {
   private joinModal: JoinLobbyModal;
   private gameModeSelector: GameModeSelector;
   private userSettings: UserSettings = new UserSettings();
-  private storeModal: StoreModal;
+  private storeModal:
+    | (HTMLElement & {
+        refresh?: () => void;
+        open?: (args?: Record<string, unknown>) => void;
+      })
+    | null = null;
   private tokenLoginModal: TokenLoginModal;
   private matchmakingModal: MatchmakingModal;
   private mostRecentJoinEvent: number;
@@ -272,17 +272,9 @@ class Client {
     // Register modals with the URL router. Lobby modals (join/host) and
     // matchmaking are intentionally omitted — they own their own URL state
     // (path-based) or none at all.
-    modalRouter.register("store", {
-      tag: "store-modal",
-      pageId: "page-item-store",
-    });
     modalRouter.register("settings", {
       tag: "user-setting",
       pageId: "page-settings",
-    });
-    modalRouter.register("leaderboard", {
-      tag: "leaderboard-modal",
-      pageId: "page-leaderboard",
     });
     modalRouter.register("clan", { tag: "clan-modal", pageId: "page-clan" });
     modalRouter.register("account", {
@@ -290,18 +282,9 @@ class Client {
       pageId: "page-account",
     });
     modalRouter.register("help", { tag: "help-modal", pageId: "page-help" });
-    modalRouter.register("news", { tag: "news-modal", pageId: "page-news" });
     modalRouter.register("language", {
       tag: "language-modal",
       pageId: "page-language",
-    });
-    modalRouter.register("single-player", {
-      tag: "single-player-modal",
-      pageId: "page-single-player",
-    });
-    modalRouter.register("ranked", {
-      tag: "ranked-modal",
-      pageId: "page-ranked",
     });
     modalRouter.register("troubleshooting", {
       tag: "troubleshooting-modal",
@@ -421,10 +404,12 @@ class Client {
       });
     });
 
-    this.storeModal = document.getElementById("page-item-store") as StoreModal;
-    if (!this.storeModal || !(this.storeModal instanceof StoreModal)) {
-      console.warn("Store modal element not found");
-    }
+    this.storeModal = document.getElementById("page-item-store") as
+      | (HTMLElement & {
+          refresh?: () => void;
+          open?: (args?: Record<string, unknown>) => void;
+        })
+      | null;
 
     const patternsModal = document.getElementById(
       "territory-patterns-modal",
@@ -445,20 +430,16 @@ class Client {
       if (mobilePat) mobilePat.style.display = "none";
     }
 
-    if (!this.storeModal || !(this.storeModal instanceof StoreModal)) {
-      console.warn("Store modal element not found");
-    }
-
     // We no longer need to manually manage the preview button as PatternInput handles it component-side.
     // However, we still want to ensure the modal can be opened.
     // The setupPatternInput above handles the click event for the new buttons.
 
-    this.storeModal.refresh();
+    this.storeModal?.refresh?.();
 
     window.addEventListener("showPage", (e: any) => {
       if (typeof e?.detail === "string" && e.detail === "page-play") {
         setTimeout(() => {
-          this.storeModal.refresh();
+          this.storeModal?.refresh?.();
         }, 50);
       }
     });
@@ -729,7 +710,7 @@ class Client {
       } else {
         alertAndStrip(`purchase succeeded: ${cosmeticName}`);
         setCosmetic();
-        this.storeModal.refresh();
+        this.storeModal?.refresh?.();
       }
       return;
     }
@@ -767,7 +748,7 @@ class Client {
       const affiliateCode = decodedHash.replace("#affiliate=", "");
       strip();
       if (affiliateCode) {
-        this.storeModal?.open({ affiliateCode });
+        this.storeModal?.open?.({ affiliateCode });
       }
     }
     if (decodedHash.startsWith("#refresh")) {
