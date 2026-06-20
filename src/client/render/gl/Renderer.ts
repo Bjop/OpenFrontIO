@@ -142,6 +142,7 @@ export class GPURenderer {
   private skinAnchorTex: WebGLTexture;
   private skinAnchorCpu: Uint16Array;
   private canvas: HTMLCanvasElement;
+  private config: Config;
   private settings: RenderSettings;
   private sceneTarget: RenderTarget;
   private raf: typeof requestAnimationFrame;
@@ -186,6 +187,7 @@ export class GPURenderer {
     caf: typeof cancelAnimationFrame = cancelAnimationFrame.bind(window),
   ) {
     this.canvas = canvas;
+    this.config = config;
     // Settings are resolved (defaults + user overrides) by the caller and
     // passed in, so every pass — including texture-baking ones like terrain —
     // is built with the final values. Live changes mutate this object in place.
@@ -319,7 +321,6 @@ export class GPURenderer {
       mapW,
       mapH,
       this.res.tileTex,
-      this.settings,
     );
 
     // --- Heat manager (needs tileTex, heatTexA/B) ---
@@ -795,7 +796,8 @@ export class GPURenderer {
     this.structureLevelPass.updateStructures(units);
     this.samRadiusPass.updateStructures(units);
     this.unitPass.setStructures(units);
-    const posts: { x: number; y: number; ownerID: number }[] = [];
+    const posts: { x: number; y: number; ownerID: number; range: number }[] =
+      [];
     const w = this.mapW;
     for (const u of units.values()) {
       if (u.unitType === "Defense Post" && !u.underConstruction) {
@@ -803,6 +805,7 @@ export class GPURenderer {
           x: u.pos % w,
           y: (u.pos - (u.pos % w)) / w,
           ownerID: u.ownerID,
+          range: this.config.defensePostRange(u.level),
         });
       }
     }

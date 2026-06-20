@@ -143,16 +143,27 @@ export class Config {
     return 90;
   }
 
-  defensePostRange(): number {
+  defaultDefensePostRange(): number {
     return 30;
   }
 
-  defensePostDefenseBonus(): number {
-    return 5;
+  defensePostRange(level = 1): number {
+    const normalizedLevel = Math.max(1, level);
+    const levelOneRange = this.defaultDefensePostRange();
+    const maxRange = this.maxDefensePostRange();
+    return maxRange - ((maxRange - levelOneRange) * 6) / (normalizedLevel + 5);
   }
 
-  defensePostSpeedBonus(): number {
-    return 3;
+  maxDefensePostRange(): number {
+    return 100;
+  }
+
+  defensePostDefenseBonus(level = 1): number {
+    return 5 + Math.max(0, level - 1);
+  }
+
+  defensePostSpeedBonus(level = 1): number {
+    return 3 + Math.max(0, level - 1) * 0.5;
   }
 
   playerTeams(): TeamCountConfig {
@@ -592,16 +603,23 @@ export class Config {
         throw new Error(`terrain type ${type} not supported`);
     }
     if (defender.isPlayer()) {
+      let bestDefensePostLevel = 0;
       for (const dp of gm.nearbyUnits(
         tileToConquer,
-        gm.config().defensePostRange(),
+        this.maxDefensePostRange(),
         UnitType.DefensePost,
       )) {
-        if (dp.unit.owner() === defender) {
-          mag *= this.defensePostDefenseBonus();
-          speed *= this.defensePostSpeedBonus();
-          break;
-        }
+        if (dp.unit.owner() !== defender) continue;
+
+        const level = dp.unit.level();
+        const range = this.defensePostRange(level);
+        if (dp.distSquared > range * range) continue;
+
+        bestDefensePostLevel = Math.max(bestDefensePostLevel, level);
+      }
+      if (bestDefensePostLevel > 0) {
+        mag *= this.defensePostDefenseBonus(bestDefensePostLevel);
+        speed *= this.defensePostSpeedBonus(bestDefensePostLevel);
       }
     }
 
