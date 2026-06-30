@@ -74,13 +74,13 @@ RUN echo "$GIT_COMMIT" > static/commit.txt
 
 ENV GIT_COMMIT="$GIT_COMMIT"
 
-RUN <<'EOF' tee /usr/local/bin/start.sh
-#!/bin/sh
-if [ "$DOMAIN" = openfront.dev ] && [ "$SUBDOMAIN" != main ]; then
-    exec timeout 25h /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
-else
-    exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
-fi
-EOF
-RUN chmod +x /usr/local/bin/start.sh
+RUN printf '%s\n' \
+    '#!/bin/sh' \
+    'if [ "$DOMAIN" = openfront.dev ] && [ "$SUBDOMAIN" != main ]; then' \
+    '    exec timeout 25h /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf' \
+    'else' \
+    '    exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf' \
+    'fi' \
+    > /usr/local/bin/start.sh \
+    && chmod +x /usr/local/bin/start.sh
 ENTRYPOINT ["/usr/local/bin/start.sh"]

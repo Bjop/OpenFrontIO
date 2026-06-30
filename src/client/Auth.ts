@@ -1,9 +1,11 @@
 import { decodeJwt } from "jose";
+import { GameEnv } from "src/core/configuration/Config";
 import { UserSettings } from "src/core/game/UserSettings";
 import { z } from "zod";
 import { TokenPayload, TokenPayloadSchema } from "../core/ApiSchemas";
 import { base64urlToUuid } from "../core/Base64";
 import { getApiBase, getAudience } from "./Api";
+import { ClientEnv } from "./ClientEnv";
 import { generateCryptoRandomUUID } from "./Utils";
 
 export type UserAuth = { jwt: string; claims: TokenPayload } | false;
@@ -248,7 +250,10 @@ export async function sendMagicLink(email: string): Promise<boolean> {
 export async function getPlayToken(): Promise<string> {
   const result = await userAuth();
   if (result !== false) return result.jwt;
-  return getPersistentIDFromLocalStorage();
+  if (ClientEnv.env() === GameEnv.Dev) {
+    return getPersistentIDFromLocalStorage();
+  }
+  throw new Error("Unable to get production play token");
 }
 
 // WARNING: DO NOT EXPOSE THIS ID
